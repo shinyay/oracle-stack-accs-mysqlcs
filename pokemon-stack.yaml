@@ -1,0 +1,68 @@
+---
+  template:
+    templateName: Pokemon-Stack-Template
+    templateVersion: 1.0.0
+    templateDescription: Stack for ACCS with MySQLCS
+    parameters:
+      mySQLPwd:
+        label: MySQL Admin Password
+        description: Password for MySQL Administrator
+        type: String
+        mandatory: false
+        default: P@ssw0rd
+        sensitive: true
+      PokemonAppJavaURL:
+        label: Pokemon Java App Archive URL
+        description: Pokemon App Location in Storage Congtainer
+        type: String
+        mandatory: false
+        default: ACCS/mysql-connect-1.0.1-SNAPSHOT.zip
+      publicKeyText:
+        label: Public Key Text
+        description: Public Key Text for Accessing the provisioned vms
+        type: ssh
+        mandatory: true
+        sensitive: true
+    resources:
+      PokemonMySQL:
+        type: MySQLCS
+        parameters:
+             serviceParameters:
+                serviceName: PokemonDB
+                serviceLevel: PAAS
+                subscription: HOURLY
+                serviceDescription: Database for Pokemon Data
+                serviceVersion: 5.7
+                vmPublicKeyText:
+                    Fn::GetParam: publicKeyText
+                backupDestination: NONE
+             componentParameters:
+                mysql:
+                  shape: oc3
+                  mysqlUserName: root
+                  mysqlUserPassword:
+                    Fn::GetParam: mySQLPwd
+      PokemonAppJava:
+        type: apaas
+        parameters:
+            name: PokemonApp
+            runtime: java
+            subscription: MONTHLY
+            archiveURL:
+                Fn::GetParam: PokemonAppJavaURL
+            deployment:
+                memory: 1G
+                instances: 2
+                services:
+                      -
+                        identifier: PokemonDBBinding
+                        name:
+                          Fn::GetAtt:
+                            - PokemonMySQL
+                            - serviceName
+                        type: MySQLCS
+                        username: root
+                        password:
+                          Fn::GetParam: mySQLPwd
+        depends_on:
+            - PokemonMySQL 
